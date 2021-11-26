@@ -6,4 +6,4 @@ compile: ../src/icmp_sync.c
 	@$(CC) $(SRC_FILE) -o $(BIN_FILE)
 
 run: compile
-	@$(BIN_FILE)
+	@sudo $(BIN_FILE)

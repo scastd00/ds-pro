@@ -1,0 +1,112 @@
+<!--
+  * All rights reserved (C) 2014-2021 by José María Foces Morán and José María
+  * Foces Vivancos from textbook "Conceptual Computer Networks"
+
+  build.xml
+
+  Build file for automating C/S computing based on Java RMI
+  See targets and their dependencies:
+  · Compile Server
+  · Compile Client
+  · Run rmiregistry
+  · Run Server
+  · Run Client
+-->
+
+<project name="Exercise_2_RFC_868" basedir="../" default="todo">
+
+	<property name="projectName" value="Exercise_2_RFC_868"/>
+	<property name="policy.file.name" value="all.policy"/>
+	<property name="policy.file" value="src/${policy.file.name}"/>
+	<property name="bin.dir" value="bin"/>
+
+	<!-- Client folders -->
+	<property name="src.jrmp_client.dir" value="src/jrmp/client"/>
+	<property name="src.udp_client.dir" value="src/udp/client"/>
+	<property name="src.tcp_client.dir" value="src/tcp/client"/>
+
+	<property name="jrmp_client.dir" value="bin/jrmp/client"/>
+	<property name="udp_client.dir" value="bin/udp/client"/>
+	<property name="tcp_client.dir" value="bin/tcp/client"/>
+
+	<!-- Server folders -->
+	<property name="src.jrmp_server.dir" value="src/jrmp/server"/>
+	<property name="src.udp_server.dir" value="src/udp/server"/>
+	<property name="src.tcp_server.dir" value="src/tcp/server"/>
+
+	<property name="jrmp_server.dir" value="bin/jrmp/server"/>
+	<property name="udp_server.dir" value="bin/udp/server"/>
+	<property name="tcp_server.dir" value="bin/tcp/server"/>
+
+	<property name="rmiregistry_path" value="/usr/bin/rmiregistry"/>
+
+	<target name="cleanProject">
+		<delete includeemptydirs="true">
+			<fileset dir="${bin.dir}" includes="**/*"/>
+		</delete>
+	</target>
+
+	<target name="cleanJRMP">
+		<delete>
+			<fileset dir="${jrmp_client.dir}" includes="**/*"/>
+			<fileset dir="${jrmp_server.dir}" includes="**/*"/>
+		</delete>
+	</target>
+
+	<target name="cleanTCP">
+		<delete>
+			<fileset dir="${tcp_client.dir}" includes="**/*"/>
+			<fileset dir="${tcp_server.dir}" includes="**/*"/>
+		</delete>
+	</target>
+
+	<target name="cleanUDP">
+		<delete>
+			<fileset dir="${udp_client.dir}" includes="**/*"/>
+			<fileset dir="${udp_server.dir}" includes="**/*"/>
+		</delete>
+	</target>
+
+	<target name="make_folder_structure" depends="cleanProject">
+		<mkdir dir="${bin.dir}"/>
+		<mkdir dir="${jrmp_client.dir}"/>
+		<mkdir dir="${udp_client.dir}"/>
+		<mkdir dir="${tcp_client.dir}"/>
+		<mkdir dir="${jrmp_server.dir}"/>
+		<mkdir dir="${udp_server.dir}"/>
+		<mkdir dir="${tcp_server.dir}"/>
+	</target>
+
+	<target name="build_jrmp" depends="cleanJRMP">
+		<echo>Hello jrmp!</echo>
+	</target>
+
+	<target name="run_jrmp_client">
+		<echo>Hello run_jrmp_client!</echo>
+	</target>
+
+	<target name="run_jrmp_server">
+		<echo>Hello run_jrmp_server!</echo>
+	</target>
+
+	<target name="build_tcp_server" depends="cleanTCP">
+		<echo>Hello build_tcp_server!</echo>
+	</target>
+
+	<target name="run_tcp_server">
+		<echo>Hello run_tcp_server!</echo>
+	</target>
+
+	<target name="build_udp_client" depends="cleanUDP">
+		<echo>Hello build_udp_client!</echo>
+	</target>
+
+	<target name="run_udp_client">
+		<echo>Hello run_udp_client!</echo>
+	</target>
+
+	<target name="todo" depends="make_folder_structure">
+		<echo>Hello todo!</echo>
+	</target>
+
+</project>

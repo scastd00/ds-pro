@@ -1,0 +1,7 @@
+**/*.class
+**/*.o
+/**/.idea/
+cmake-build-debug/
+CMakeLists.txt
+**/*.iml
+

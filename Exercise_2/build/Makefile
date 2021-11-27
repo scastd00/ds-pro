@@ -15,10 +15,10 @@ jrmp:
 	@$(ANT) build_jrmp
 
 run_jrmp_client:
-	@$(ANT) run_jrmp_client
+	@sudo $(ANT) run_jrmp_client
 
 run_jrmp_server:
-	@$(ANT) run_jrmp_server
+	@sudo $(ANT) run_jrmp_server
 
 
 
@@ -30,10 +30,10 @@ tcp:
 	@$(CC) ../src/tcp/client/main_tcp_client.c -o ../bin/tcp/client/main_tcp_client.o
 
 run_tcp_client:
-	@../bin/tcp/client/main_tcp_client.o
+	@sudo ../bin/tcp/client/main_tcp_client.o
 
 run_tcp_server:
-	@$(ANT) run_tcp_server
+	@sudo $(ANT) run_tcp_server
 
 
 
@@ -45,7 +45,7 @@ udp:
 	@$(CC) ../src/udp/server/main_udp_server.c -o ../bin/udp/server/main_udp_server.o
 
 run_udp_client:
-	@$(ANT) run_udp_client
+	@sudo $(ANT) run_udp_client
 
 run_udp_server:
-	@../bin/udp/server/main_udp_server.o
+	@TZ=CET sudo ../bin/udp/server/main_udp_server.o

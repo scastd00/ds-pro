@@ -90,19 +90,33 @@
 	</target>
 
 	<target name="build_tcp_server" depends="cleanTCP">
-		<echo>Hello build_tcp_server!</echo>
+		<javac destdir="${tcp_server.dir}" verbose="false" debug="true" includeantruntime="false">
+			<!-- Where to find the src files -->
+			<src path="${src.tcp_server.dir}"/>
+		</javac>
 	</target>
 
 	<target name="run_tcp_server">
-		<echo>Hello run_tcp_server!</echo>
+		<java classname="tcp.server.MainTCPServer" fork="true">
+			<classpath>
+				<pathelement path="${tcp_server.dir}"/>
+			</classpath>
+		</java>
 	</target>
 
 	<target name="build_udp_client" depends="cleanUDP">
-		<echo>Hello build_udp_client!</echo>
+		<javac destdir="${udp_client.dir}" verbose="false" debug="true" includeantruntime="false">
+			<!-- Where to find the src files -->
+			<src path="${src.udp_client.dir}"/>
+		</javac>
 	</target>
 
 	<target name="run_udp_client">
-		<echo>Hello run_udp_client!</echo>
+		<java classname="udp.client.MainUDPClient" fork="true">
+			<classpath>
+				<pathelement path="${udp_client.dir}"/>
+			</classpath>
+		</java>
 	</target>
 
 	<target name="todo" depends="make_folder_structure">

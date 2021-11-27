@@ -30,7 +30,7 @@ tcp:
 	@$(CC) ../src/tcp/client/main_tcp_client.c -o ../bin/tcp/client/main_tcp_client.o
 
 run_tcp_client:
-	@$(CC) ../bin/tcp/client/main_tcp_client.o
+	@../bin/tcp/client/main_tcp_client.o
 
 run_tcp_server:
 	@$(ANT) run_tcp_server
@@ -48,4 +48,4 @@ run_udp_client:
 	@$(ANT) run_udp_client
 
 run_udp_server:
-	@$(CC) ../bin/udp/server/main_udp_server.o
+	@../bin/udp/server/main_udp_server.o

@@ -73,7 +73,7 @@ void printClient(struct sockaddr_in clientAddress) {
 	fflush(stdout);
 }
 
-void server(int port) {
+_Noreturn void server(int port) {
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
 		fprintf(stderr, "Unable to have SIGPIPE ignored. Exiting.\n");
 		exit(-1);
@@ -105,8 +105,8 @@ void server(int port) {
 	 *************************************************************************************/
 
 	while (TRUE) {
-		printf("Server loop restarted\n\n");
-		fflush(stdout);
+//		printf("Server loop restarted\n\n");
+//		fflush(stdout);
 
 		/*
 		 * Before calling accept(), load addressLength with the actual storage size
@@ -120,16 +120,26 @@ void server(int port) {
 		 * contain the actual number of bytes filled by accept() in clientAddress
 		 */
 		delegateSocket = accept(welcomeSocket, (struct sockaddr *) &clientAddress, &addressLength);
-
-		printClient(clientAddress);
+//		printClient(clientAddress);
 
 		pthread_t threadForClient;
 
-		if (pthread_create(&threadForClient, (pthread_attr_t *) NULL, (void *(*)(void *)) clientServerProtocol, &delegateSocket) != 0)
-			perror("Thread creation error\n");
-		else
-			printf("New worker thread created\n");
+		if (DEBUG_SOLUTION) {
+			// Para que cada thread tenga su propia delegate socket
+			int *del_sock = (int *) malloc(sizeof(int));
+			*del_sock = delegateSocket;
 
+			if (pthread_create(&threadForClient, (pthread_attr_t *) NULL, clientServerProtocol, del_sock) != 0)
+				perror("Thread creation error\n");
+			else
+				printf("New worker thread created (Delegate socket %d)\n", delegateSocket);
+
+		} else {
+			if (pthread_create(&threadForClient, (pthread_attr_t *) NULL, clientServerProtocol, &delegateSocket) != 0)
+				perror("Thread creation error\n");
+			else
+				printf("New worker thread created (Delegate socket %d)\n", delegateSocket);
+		}
 	}
 
 	close(welcomeSocket);

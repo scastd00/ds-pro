@@ -35,7 +35,7 @@ void runCS_Protocol(int sock) {
 	//Append n_NBO to the string representing the request (REQ_MULT_2) for computing 2*N
 	memcpy(request + strlen(REQ_MULT_2), (char *) &n_NBO, sizeof(uint32_t));
 
-	printf("Sending a request of type '%s' with integer 0x%x concatenated in Net Byte Order\n", REQ_MULT_2, n);
+//	printf("Sending a request of type '%s' with integer 0x%x concatenated in Net Byte Order\n", REQ_MULT_2, n);
 	fflush(stdout);
 
 	//Send the request alongside N_NBO appended to it
@@ -51,12 +51,12 @@ void runCS_Protocol(int sock) {
 		exit(-1);
 	}
 
-	printf("Length of response = %d\n", length);
-	printf("Bytes in response:\n");
-	fflush(stdout);
+//	printf("Length of response = %d\n", length);
+//	printf("Bytes in response:\n");
+//	fflush(stdout);
 
-	printf("Received response is [equal] to: '%s'\n", RESP_MULT_2);
-	printf("Received word-32 still in Network byte order:\n");
+//	printf("Received response is [equal] to: '%s'\n", RESP_MULT_2);
+//	printf("Received word-32 still in Network byte order:\n");
 
 	char *p = response + strlen(RESP_MULT_2);
 	uint32_t v0 = (uint32_t) *p;
@@ -64,9 +64,9 @@ void runCS_Protocol(int sock) {
 	uint32_t v2 = (uint32_t) *(p + 2);
 	uint32_t v3 = (uint32_t) *(p + 3);
 
-	printf("[0] = 0x%x; [1] = 0x%x; [2] = 0x%x; [3] = 0x%x\n", v0, v1, v2, v3);
-
-	printf("Received result = 0x%x\n", ntohl(*(uint32_t *) p));
+//	printf("[0] = 0x%x; [1] = 0x%x; [2] = 0x%x; [3] = 0x%x\n", v0, v1, v2, v3);
+//
+//	printf("Received result = 0x%x\n", ntohl(*(uint32_t *) p));
 	free(response);
 }
 
@@ -87,7 +87,10 @@ int connectToServer(int sock, const char *ipAddress, short int port) {
 	*/
 	int r = connect(sock, (struct sockaddr *) &server, sizeof(server));
 
-	printf("Return value of connect() = %d\n", r);
+	if (r != 0) {
+		printf("Error connecting\n");
+	}
+//	printf("Return value of connect() = %d\n", r);
 	fflush(stdout);
 
 	return r;

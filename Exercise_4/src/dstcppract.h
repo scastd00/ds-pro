@@ -65,11 +65,15 @@ extern "C" {
 #define FALSE 0
 #define DEFAULT_PORT 60001
 
-//For listen() socket function:
-#define BACKLOG 10
+// For listen() socket function
+#define BACKLOG 100
 
 #define MAX_REQ_SIZE 1024
 #define MAX_RESP 1024
 
+#define DEBUG_SOLUTION 1
 
-void *clientServerProtocol(int *ds);
+#define MAXITERATIVEREQUESTS 5
+#define PAUSEBETWEENREQUESTS 5
+
+void *clientServerProtocol(void *ds);

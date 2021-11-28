@@ -30,7 +30,7 @@ tcp:
 	@$(CC) ../src/tcp/client/main_tcp_client.c -o ../bin/tcp/client/main_tcp_client.o
 
 run_tcp_client:
-	@sudo ../bin/tcp/client/main_tcp_client.o
+	@TZ=GMT sudo ../bin/tcp/client/main_tcp_client.o
 
 run_tcp_server:
 	@sudo $(ANT) run_tcp_server
@@ -48,4 +48,4 @@ run_udp_client:
 	@sudo $(ANT) run_udp_client
 
 run_udp_server:
-	@TZ=CET sudo ../bin/udp/server/main_udp_server.o
+	@TZ=GMT sudo ../bin/udp/server/main_udp_server.o

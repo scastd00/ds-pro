@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 public class Server {
 	private static final int          PORT = 37;
@@ -23,7 +24,7 @@ public class Server {
 		byte[] data = Long.toString(this.getTime()).getBytes();
 		out.write(data);
 
-		System.out.printf("Sent %d bytes\n", data.length);
+		System.out.printf("Sent %d bytes%n", data.length);
 	}
 
 	public void closeConnection() throws IOException {
@@ -32,7 +33,7 @@ public class Server {
 	}
 
 	private long getTime() {
-		Calendar cal = Calendar.getInstance();
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 		cal.clear();
 		cal.set(1900, Calendar.JANUARY, 1, 0, 0, 0);
 

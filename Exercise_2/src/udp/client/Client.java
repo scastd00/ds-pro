@@ -1,43 +1,45 @@
 package udp.client;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.nio.ByteBuffer;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.time.Instant;
-import java.time.LocalTime;
-import java.time.OffsetTime;
 import java.time.ZoneId;
-import java.util.Arrays;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class Client {
-	private final Socket socket;
+	private static final byte[]         REQ_MSG = "GET_DATE\0".getBytes();
+	private final        DatagramSocket socket;
 
 	public Client() throws IOException {
-		this.socket = new Socket("127.0.0.1", 37);
+		this.socket = new DatagramSocket();
 	}
 
 	public void work() throws IOException {
-		InputStream         in      = this.socket.getInputStream();
-		byte[]              buffer  = new byte[32];
+		DatagramPacket packet = new DatagramPacket(REQ_MSG, REQ_MSG.length, InetAddress.getLocalHost(), 37);
 
-		if (in.read(buffer) < 0) {
-			System.out.println("Error while reading");
-			System.exit(1);
-		}
+		this.socket.send(packet);
 
-//		byte[] buffer2 = new byte[32];
-//		for (int i = 0; i < buffer.length; i++) {
-//			buffer2[buffer.length - i - 1] = buffer[i];
-//		}
+		byte[] response = new byte[Integer.SIZE];
+		packet = new DatagramPacket(response, Integer.SIZE, InetAddress.getLocalHost(), 37);
+		this.socket.receive(packet);
 
-		ByteBuffer wrapped = ByteBuffer.wrap(buffer);
-		System.out.println(Arrays.toString(buffer));
-		long date = wrapped.getLong();
-		System.out.println("Date: " + date);
-//		long      l    = Long.getLong(new String(buffer));
-		LocalTime time = LocalTime.from(OffsetTime.ofInstant(Instant.ofEpochSecond(date), ZoneId.of("UTC")));
+		String binStringNum = new String(packet.getData());
+		long   secondsDate  = Long.parseLong(binStringNum, 2);
 
-		System.out.println(time.toString());
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+		cal.clear();
+		cal.set(1900, Calendar.JANUARY, 1, 0, 0, 0);
+		Instant instant = cal.toInstant().plusSeconds(secondsDate);
+		DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL, FormatStyle.FULL)
+			.withLocale(Locale.getDefault())
+			.withZone(ZoneId.of("GMT"));
+
+		System.out.println(formatter.format(instant));
 	}
 }

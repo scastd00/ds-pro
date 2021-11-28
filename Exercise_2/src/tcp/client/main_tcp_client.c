@@ -76,7 +76,7 @@ void run_tcp(int sock) {
 		.tm_hour = 0,
 		.tm_mday = 1,
 		.tm_mon = 0,
-		.tm_year = 0,
+		.tm_year = 0, // Year 1900
 	};
 
 	print_time(atol(received), tm_1900);

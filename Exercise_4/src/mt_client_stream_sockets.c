@@ -32,7 +32,7 @@ void runCS_Protocol(int sock) {
 	const uint32_t n = 0x12345678;
 	//Translate n to Network Byte Order:
 	uint32_t n_NBO = htonl(n);
-	//Append n_NBO to the string representing the request (REQMULT2) for computing 2*N
+	//Append n_NBO to the string representing the request (REQ_MULT_2) for computing 2*N
 	memcpy(request + strlen(REQ_MULT_2), (char *) &n_NBO, sizeof(uint32_t));
 
 	printf("Sending a request of type '%s' with integer 0x%x concatenated in Net Byte Order\n", REQ_MULT_2, n);
@@ -79,8 +79,8 @@ int connectToServer(int sock, const char *ipAddress, short int port) {
 	server.sin_addr.s_addr = inet_addr(ipAddress);
 
 	/*
-	* Assumming the server's welcome socket is in the LISTEN state, the
-	* following call will causes the local TCP/IP stack to initiate the
+	* Assuming the server's welcome socket is in the LISTEN state, the
+	* following call will cause the local TCP/IP stack to initiate the
 	* 3-way handshake by sending a SYN packet, wait for the ACK-SYN and
 	* send the final ACK. From this moment on, the connection is in the
 	* ESTABLISHED state.
@@ -99,7 +99,7 @@ int createSocket() {
 	//Last parameter is always 0 for these sockets
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 
-	//Create a loacl socket-address for the client itself
+	//Create a local socket-address for the client itself
 	struct sockaddr_in client;
 	client.sin_family = AF_INET;
 	client.sin_port = INADDR_ANY;
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
 	if (argc == 3) {
 		client(argv[1], atoi(argv[2]));
 	} else {
-		printf("$ client  <server ip address> <TCP port number>");
+		printf("$ client <server ip address> <TCP port number>");
 		printf("\nExiting.\n");
 	}
 }

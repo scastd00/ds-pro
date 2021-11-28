@@ -20,6 +20,7 @@
 #include "dstcppract.h"
 
 int createConfigWelcomeSocket(int port) {
+
 	/*
 	 * Create a TCP (stream) socket using the Internet address family
 	 */
@@ -30,9 +31,7 @@ int createConfigWelcomeSocket(int port) {
 	 */
 	struct sockaddr_in wsAddress;
 
-//	bzero(&wsAddress, sizeof(wsAddress)); // Obsolete function
-
-	//Clear the contents of wsAddress
+	// Clear the contents of wsAddress
 	memset(&wsAddress, 0, sizeof(wsAddress));
 
 	//Set the socket address family equal to Internet address
@@ -47,14 +46,12 @@ int createConfigWelcomeSocket(int port) {
 	 * to have this socket listen on; we can have the socket listen
 	 * on all the IP addresses assigned to this host like right below here:
 	 *************************************************************************************/
-
 	wsAddress.sin_addr.s_addr = INADDR_ANY;
 
 	/*
 	 * Bind the newly created address to the welcome socket
 	 */
 	bind(welcomeSocket, (struct sockaddr *) &wsAddress, sizeof(wsAddress));
-
 
 	/*************************************************************************************
 	 * So far we have created a stream socket and assigned a local address to it
@@ -68,16 +65,12 @@ int createConfigWelcomeSocket(int port) {
 	 *************************************************************************************/
 
 	listen(welcomeSocket, BACKLOG);
-
 	return welcomeSocket;
-
 }
 
 void printClient(struct sockaddr_in clientAddress) {
-
 	printf("Client IP %s\tClient port %hu\n", inet_ntoa(clientAddress.sin_addr), ntohs(clientAddress.sin_port));
 	fflush(stdout);
-
 }
 
 void server(int port) {

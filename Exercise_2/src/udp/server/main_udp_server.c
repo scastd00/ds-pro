@@ -117,7 +117,7 @@ void run_date(int sock) {
 int main() {
 	struct sockaddr_in server = create_server_address();
 
-	int sock = socket(AF_INET, SOCK_DGRAM, 0); // Create the socket
+	int sock = socket(AF_INET, SOCK_DGRAM, 0); // Create the datagram socket (UDP)
 	bind(sock, (struct sockaddr *) &server, sizeof(server));
 
 	run_date(sock);

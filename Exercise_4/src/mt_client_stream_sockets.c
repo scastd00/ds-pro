@@ -15,25 +15,16 @@
 
 #include "dstcppract.h"
 
-int sendRequest(int sock, char *message, int nbytes) {
-
-	ssize_t n = write(sock, message, nbytes);
-
-	return n;
-
+ssize_t sendRequest(int sock, const char *message, int n_bytes) {
+	return write(sock, message, n_bytes);
 }
 
-int receiveResponse(int sock, char *message, int nbytes) {
-
-	ssize_t n = read(sock, message, nbytes);
-
-	return n;
-
+ssize_t receiveResponse(int sock, char *message, int n_bytes) {
+	return read(sock, message, n_bytes);
 }
 
 void runCS_Protocol(int sock) {
-
-	static char unsigned request[MAX_REQ_SIZE];
+	static char request[MAX_REQ_SIZE];
 
 	strncpy(request, REQ_MULT_2, strlen(REQ_MULT_2));
 
@@ -50,7 +41,7 @@ void runCS_Protocol(int sock) {
 	//Send the request alongside N_NBO appended to it
 	sendRequest(sock, request, strlen(REQ_MULT_2) + sizeof(uint32_t));
 
-	unsigned char *response = malloc(MAX_RESP);
+	char *response = (char *) malloc(MAX_RESP);
 
 	int length = receiveResponse(sock, response, MAX_RESP);
 
@@ -67,18 +58,19 @@ void runCS_Protocol(int sock) {
 	printf("Received response is [equal] to: '%s'\n", RESP_MULT_2);
 	printf("Received word-32 still in Network byte order:\n");
 
-	unsigned char *p = response + strlen(RESP_MULT_2);
-	unsigned v0 = (unsigned int) *p;
-	unsigned v1 = (unsigned int) *(p + 1);
-	unsigned v2 = (unsigned int) *(p + 2);
-	unsigned v3 = (unsigned int) *(p + 3);
+	char *p = response + strlen(RESP_MULT_2);
+	uint32_t v0 = (uint32_t) *p;
+	uint32_t v1 = (uint32_t) *(p + 1);
+	uint32_t v2 = (uint32_t) *(p + 2);
+	uint32_t v3 = (uint32_t) *(p + 3);
 
 	printf("[0] = 0x%x; [1] = 0x%x; [2] = 0x%x; [3] = 0x%x\n", v0, v1, v2, v3);
 
-	printf("Received result = 0x%x\n", ntohl(*((unsigned int *) p)));
+	printf("Received result = 0x%x\n", ntohl(*(uint32_t *) p));
+	free(response);
 }
 
-int connectToServer(int sock, char *ipAddress, short int port) {
+int connectToServer(int sock, const char *ipAddress, short int port) {
 
 	//Socket address for server
 	struct sockaddr_in server;
@@ -99,7 +91,6 @@ int connectToServer(int sock, char *ipAddress, short int port) {
 	fflush(stdout);
 
 	return r;
-
 }
 
 int createSocket() {
@@ -119,39 +110,30 @@ int createSocket() {
 	* necessary since the upcoming to connect() will implicitly
 	* accomplish the binding of a local address to the Socket
 	*/
-
 	bind(sock, (struct sockaddr *) &client, sizeof(client));
 
 	return sock;
-
 }
 
-void client(char *ip, int port) {
-
+void client(const char *ip, int port) {
 	int sock = createSocket();
-
 	int r;
 
 	if ((r = connectToServer(sock, ip, port)) != 0) {
 		fprintf(stderr, "Connection to server failed\n");
+		close(sock);
 		exit(r);
-	};
+	}
 
 	runCS_Protocol(sock);
-
 	close(sock);
-
 }
 
 int main(int argc, char **argv) {
-
 	if (argc == 3) {
-
 		client(argv[1], atoi(argv[2]));
-
 	} else {
 		printf("$ client  <server ip address> <TCP port number>");
 		printf("\nExiting.\n");
 	}
-
 }

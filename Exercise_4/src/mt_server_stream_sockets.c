@@ -8,6 +8,10 @@
  * Stream-socket based server for basic TCP protocol analysis
  * Server responds to requests sent by clientAddress
  *
+ * References:
+ *   - http://paloalto.unileon.es/ds/lab/pract3.pdf
+ *   - http://paloalto.unileon.es/ds/lab/StreamSock-API.pdf
+ *   - http://paloalto.unileon.es/ds/lab/serverSolution.c
  *
  * Modified by Samuel Castrillo Domínguez
  *************************************************************************************

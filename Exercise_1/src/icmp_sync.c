@@ -50,7 +50,6 @@ int pid;
 #define SEC_IN_HOUR (24 * 3600)
 #define MS_IN_SEC 1000
 #define NTP_IP "193.146.101.46" // NTP server -> paloalto.unileon.es
-//#define NTP_IP "162.159.200.123"
 
 struct timeval originate_time_val;
 struct timeval receive_time_val;
@@ -60,56 +59,24 @@ time_t TSRecv;
 time_t TSTrans;
 time_t TSDiff;
 
-bool end;
-
-struct sockaddr_in createClientAddress() {
-	struct sockaddr_in client = {
-		.sin_family = AF_INET,
-		.sin_port = INADDR_ANY,
-		.sin_addr.s_addr = INADDR_ANY
-	};
-
-	return client;
-}
-/*
-struct sockaddr_in *createServerAddress(const char *target_ip_ddn) {
-	struct sockaddr_in *socket_target_host; // inet socket address for target host
-
-	memset((char *) &targetHost, 0, sizeof(struct sockaddr));
-
-	socket_target_host = (struct sockaddr_in *) &targetHost;
-	socket_target_host->sin_family = AF_INET;
-
-	inet_aton(target_ip_ddn, &(socket_target_host->sin_addr));
-
-	return socket_target_host;
-}
-
-int createClientSocket(struct sockaddr_in client) {
-	int s = socket(AF_INET, SOCK_RAW, 0);
-
-	bind(s, (struct sockaddr *) &client, sizeof(client));
-
-	return s;
-}
-*/
+bool end = 0;
 
 int createServerSocket(const char *target_ip_ddn) {
-	struct sockaddr_in *target_host_socket; // inet socket address for target host
+	struct sockaddr_in *inetTargetHost; //inet socket address for target host
 
-	memset((char *) &targetHost, 0, sizeof(struct sockaddr));
+	bzero((char *) &targetHost, sizeof(struct sockaddr));
 
-	target_host_socket = (struct sockaddr_in *) &targetHost;
-	target_host_socket->sin_family = AF_INET;
+	inetTargetHost = (struct sockaddr_in *) &targetHost;
+	inetTargetHost->sin_family = AF_INET;
+	inet_aton(target_ip_ddn, &(inetTargetHost->sin_addr));
 
-	inet_aton(target_ip_ddn, &(target_host_socket->sin_addr));
+	const struct protoent *protocol = getprotobyname("icmp");
 
-	return socket(AF_INET, SOCK_RAW, getprotobyname("icmp")->p_proto);
+	return socket(AF_INET, SOCK_RAW, protocol->p_proto);
 }
 
-unsigned char *createPacket(int *packet_length) {
+u_char *createPacket(int *packet_length) {
 	*packet_length = data_length + MAX_IP_HEADER_LENGTH + MAX_ICMP_PAYLOAD_LENGTH;
-	printf("Length of packet %d\n", *packet_length);
 
 	unsigned char *packet = (unsigned char *) malloc((unsigned int) *packet_length);
 
@@ -145,7 +112,7 @@ unsigned short internetChecksum(u_short *addr, int len) {
 	return answer;
 }
 
-int processPacket(char *buff, int n, struct sockaddr_in *from) {
+int processPacket(char *buff) {
 	int headerLength;
 	const struct icmp *icmp;
 	const struct ip *ip;
@@ -160,8 +127,6 @@ int processPacket(char *buff, int n, struct sockaddr_in *from) {
 	ip = (struct ip *) buff;
 	headerLength = ip->ip_hl << 2;
 
-	// Subtract header length from n
-	n -= headerLength;
 	icmp = (struct icmp *) (buff + headerLength);
 
 	/*
@@ -221,6 +186,7 @@ void sendRequest() {
 	unsigned char requestPacket[MAX_IP_PACKET_SIZE];
 
 	icmp = (struct icmp *) requestPacket;
+	bzero((void *) icmp, MAX_IP_PACKET_SIZE);
 	icmp->icmp_type = ICMP_TSTAMP;
 	icmp->icmp_code = 0;
 	icmp->icmp_seq = MAGIC_SEQ_NUMBER;
@@ -237,12 +203,9 @@ void sendRequest() {
 
 	len = data_length + 8;
 
-	unsigned short checksum = internetChecksum((u_short *) icmp, len);
+	icmp->icmp_cksum = internetChecksum((u_short *) icmp, len);
 
-	icmp->icmp_cksum = checksum;
-	printf("Checksum: 0x%x\n", checksum);
-
-	sendto(rawSocket, (char *) requestPacket, len, 0, &targetHost, sizeof(targetHost));
+	sendto(rawSocket, (char *) requestPacket, len, 0, &targetHost, sizeof(struct sockaddr));
 }
 
 void receiveResponse(int packet_length, unsigned char *recv_packet) {
@@ -251,8 +214,10 @@ void receiveResponse(int packet_length, unsigned char *recv_packet) {
 	int from_len;
 
 	from_len = sizeof(from);
+	printf("Antes recv\n");
 	n_bytes = recvfrom(rawSocket, (char *) recv_packet, packet_length,
 	                   0, (struct sockaddr *) &from, &from_len);
+	printf("Después recv\n");
 
 	if (n_bytes < 0) {
 		printf("Bytes received < 0");
@@ -264,25 +229,24 @@ void receiveResponse(int packet_length, unsigned char *recv_packet) {
 			perror("recvfrom error");
 	}
 
-	if (processPacket((char *) recv_packet, n_bytes, &from) == 0)
+	if (processPacket((char *) recv_packet) == 0)
 		return;
 }
 
 int main() {
-	struct sockaddr_in client = createClientAddress();
 	pid = getpid();
 	rawSocket = createServerSocket(NTP_IP);
-	bind(rawSocket, (struct sockaddr *) &client, sizeof(rawSocket));
+	unsigned char *packet = NULL;
+	int packetLength;
 
 	while (!end) {
-		int packetLength;
-		unsigned char *packet = NULL;
-		sleep(1);
 		packet = createPacket(&packetLength);
 		sendRequest();
-		printf("rawSocket: %d\n", rawSocket);
 		receiveResponse(packetLength, packet);
+
+		sleep(1);
 	}
 
+	free(packet);
 	return 0;
 }

@@ -15,6 +15,10 @@ public class SDRemoteObjectImpl extends UnicastRemoteObject implements SDRemoteO
 		super(); // Todo: add port??
 	}
 
+	/*
+	Se añade el puerto en el host o en otro sitio?
+	 */
+
 	@Override
 	public long increment() throws RemoteException {
 		printThread();

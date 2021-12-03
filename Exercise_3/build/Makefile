@@ -6,3 +6,6 @@ run_server:
 
 run_client:
 	@sudo ant run_client -f ../build.xml
+
+upload:
+	@scp -P 50500 -r ../* 'scastd00@estudiantes.unileon.es'@paloalto.unileon.es:rmi

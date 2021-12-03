@@ -29,7 +29,7 @@
  * };
  ******************************************************************************/
 
-package client.rmievents;
+package rmievents;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -95,5 +95,5 @@ public class Client {
 		} catch (RemoteException | NotBoundException ex) {
 			Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
 		}
-	}
+    }
 }

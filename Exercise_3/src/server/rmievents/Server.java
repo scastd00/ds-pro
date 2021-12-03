@@ -20,7 +20,7 @@
  * sdrmiexample.Server\
  * <Remote object registry name>
  ******************************************************************************/
-package server.rmievents;
+package rmievents;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;
@@ -51,5 +51,5 @@ public class Server {
 		} catch (RemoteException | MalformedURLException ex) {
 			Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
 		}
-	}
+    }
 }

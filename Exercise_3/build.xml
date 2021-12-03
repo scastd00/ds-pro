@@ -17,8 +17,14 @@
 	<property name="web.dir" value="/var/www/html"/>
 
 	<property name="remote.object.name" value="samuel"/>
+	<property name="remote.object.port" value="65497"/>
+
 	<property name="webserver.ip" value="192.168.1.103"/>
 	<property name="server.host.ip" value="192.168.1.103"/>
+
+	<!-- IP Paloalto: 193.146.101.46  -->
+
+	<property name="rmiregistry_ext.port" value="60001"/>
 
 	<property name="rmiregistry_path" value="/usr/bin/rmiregistry"/>
 

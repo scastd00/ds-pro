@@ -1,4 +1,4 @@
-<project name="RMIEvents" basedir="../">
+<project name="RMIEvents" basedir="../" default="compile">
 	<property name="client.src.dir" value="src/client"/>
 	<property name="server.src.dir" value="src/server"/>
 	<property name="policy.file" value="${client.src.dir}/all.policy"/>
@@ -43,7 +43,7 @@
 		</javac>
 
 		<copy file="${server.dir}/${package.name}/SDRemoteObject.class"
-			  todir="${web.dir}/${package.name}"/>
+			  todir="${web.dir}/server/${package.name}"/>
 	</target>
 
 	<target name="compile_client" depends="clean_client" if="${in.client}">
@@ -63,7 +63,7 @@
 	</target>
 
 	<target name="run_server" depends="compile_server, rmiregistry">
-		<java classpath="${classes.dir}" classname="${package.name}.Server"
+		<java classpath="${classes.dir}" classname="server.${package.name}.Server"
 			  fork="true" failonerror="true">
 			<jvmarg value="-Djava.rmi.server.hostname=${server_host.ip}"/>
 			<jvmarg value="-Djava.rmi.server.codebase=http://${webserver.ip}/"/>
@@ -75,7 +75,7 @@
 	<target name="run_client" depends="compile_client">
 		<copy file="${policy.file}" todir="${client.dir}"/>
 
-		<java classpath="${classes.dir}" classname="${package.name}.Client"
+		<java classpath="${classes.dir}" classname="client.${package.name}.Client"
 			  fork="true" failonerror="true">
 
 			<jvmarg value="-Djava.security.policy=${policy.file}"/>

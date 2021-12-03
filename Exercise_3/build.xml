@@ -1,10 +1,10 @@
-<project name="DSRmi" basedir="." default="run_server">
+<project name="DSRmi" basedir="." default="compile">
 
 	<property name="client.src.dir" value="src/client"/>
 	<property name="server.src.dir" value="src/server"/>
 	<property name="policy.file.name" value="all.policy"/>
 
-	<property name="build.dir" value="/build"/>
+	<property name="build.dir" value="build"/>
 	<property name="client.dir" value="${build.dir}/client"/>
 	<property name="server.dir" value="${build.dir}/server"/>
 	<property name="stubs.dir" value="${build.dir}/stubs"/>
@@ -28,8 +28,8 @@
 	</target>
 
 	<target name="clean_client">
-		<delete dir="/build/client"/>
-		<mkdir dir="/build/client"/>
+		<delete dir="${client.dir}"/>
+		<mkdir dir="${client.dir}"/>
 	</target>
 
 	<target name="compile_server" depends="clean_server">
@@ -47,7 +47,7 @@
 	<target name="compile_client" depends="clean_client">
 		<javac
 			srcdir="${client.src.dir}"
-			destdir="/build/client">
+			destdir="${client.dir}">
 			<compilerarg value="-encoding"/>
 			<compilerarg value="utf8"/>
 		</javac>
@@ -71,7 +71,7 @@
 	<target name="run_client" depends="compile_client">
 		<copy file="src/${policy.file.name}" todir="${client.dir}"/>
 
-		<java dir="/build/client" classpath="${client.dir}" classname="${package.name}.Client"
+		<java classpath="${client.dir}" classname="${package.name}.Client"
 			  fork="true" failonerror="true">
 
 			<jvmarg value="-Djava.security.policy=${client.dir}/${policy.file.name}"/>

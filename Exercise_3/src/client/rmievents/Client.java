@@ -64,14 +64,14 @@ public class Client {
 
 
 			/*
-			 * Here we use the the same key name used in the server program
+			 * Here we use the same key name used in the server program
 			 * args[1], provided in the command line, the remote registry r will
 			 * return us a proxy java class (It is called stub conventionally),
 			 * it will return us a stub which will be cast to an ExampleMethods
 			 * instance, note that we do not need the implementation, it
 			 * suffices for us to have the interface ExampleMethods. From this
 			 * moment on we have cc, an instance of ExampleMethods that has been
-			 * unmarshalled by the rmi protocol and we know that it has two
+			 * unmarshalled by the rmi protocol, and we know that it has two
 			 * remote methods that we can call for our good.
 			 */
 			SDRemoteObject cc = (SDRemoteObject) r.lookup(args[1]);

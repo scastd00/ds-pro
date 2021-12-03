@@ -10,8 +10,8 @@ import java.util.logging.Logger;
 public class Client {
 	public static void main(String[] args) {
 
-		if (args.length != 3) {
-			System.err.println("rmievents.Client <ip address of rmi server's registry> <external port> <rmi name>");
+		if (args.length != 2) {
+			System.err.println("rmievents.Client <ip address of rmi server's registry> <rmi name>");
 			System.exit(-1);
 		}
 
@@ -26,11 +26,11 @@ public class Client {
 			/*
 			 * Locate a rmi registry at the IP address specified in the command line
 			 */
-			Registry r = LocateRegistry.getRegistry(args[0], Integer.parseInt(args[1]));
+			Registry r = LocateRegistry.getRegistry(args[0]);
 			System.out.println("Registry found");
 			System.out.flush();
 
-			SDRemoteObject cc = (SDRemoteObject) r.lookup(args[2]);
+			SDRemoteObject cc = (SDRemoteObject) r.lookup(args[1]);
 
 			System.out.println("Stub lookup done");
 			System.out.flush();

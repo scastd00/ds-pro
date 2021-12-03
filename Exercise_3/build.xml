@@ -4,7 +4,7 @@
 	<property name="server.src.dir" value="src/server"/>
 	<property name="policy.file.name" value="all.policy"/>
 
-	<property name="build.dir" value="build"/>
+	<property name="build.dir" value="/build"/>
 	<property name="client.dir" value="${build.dir}/client"/>
 	<property name="server.dir" value="${build.dir}/server"/>
 	<property name="stubs.dir" value="${build.dir}/stubs"/>
@@ -16,14 +16,9 @@
 	<property name="stub-file" value="SDRemoteObject.class"/>
 	<property name="web.dir" value="/var/www/html"/>
 
-	<property name="remote.object.name" value="leon"/>
-	<property name="remote.object.port" value="65497"/>
-
-	<property name="webserver.ip" value="193.146.101.46"/>
-	<property name="server.host.ip" value="193.146.101.46"/>
-<!--	193.146.101.46  -->
-
-	<property name="rmiregistry_ext.port" value="60001"/>
+	<property name="remote.object.name" value="samuel"/>
+	<property name="webserver.ip" value="192.168.1.103"/>
+	<property name="server.host.ip" value="192.168.1.103"/>
 
 	<property name="rmiregistry_path" value="/usr/bin/rmiregistry"/>
 
@@ -70,26 +65,21 @@
 			<jvmarg value="-Djava.rmi.server.hostname=${server.host.ip}"/>
 			<jvmarg value="-Djava.rmi.server.codebase=http://${webserver.ip}/"/>
 			<arg value="${remote.object.name}"/>
-<!--			<arg value="${remote.object.port}"/> &lt;!&ndash; Cuidado &ndash;&gt;-->
 		</java>
 	</target>
-
-<!--	todo: revisar desde hora 16:25 -->
 
 	<target name="run_client" depends="compile_client">
 		<copy file="src/${policy.file.name}" todir="${client.dir}"/>
 
-		<java classpath="${client.dir}" classname="${package.name}.Client"
+		<java dir="/build/client" classpath="${client.dir}" classname="${package.name}.Client"
 			  fork="true" failonerror="true">
 
 			<jvmarg value="-Djava.security.policy=${client.dir}/${policy.file.name}"/>
 
 			<arg value="${server.host.ip}"/>
-			<arg value="${rmiregistry_ext.port}"/>
 			<arg value="${remote.object.name}"/>
 		</java>
 	</target>
-<!-- scp -r -P 50500 * 'scastd00@estudiantes.unileon.es'@paloalto.unileon.es:carpeta  -->
 
 	<target name="compile" depends="compile_client, compile_server"/>
 </project>

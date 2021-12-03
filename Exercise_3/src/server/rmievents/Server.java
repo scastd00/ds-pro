@@ -51,5 +51,5 @@ public class Server {
 		} catch (RemoteException | MalformedURLException ex) {
 			Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
 		}
-    }
+	}
 }

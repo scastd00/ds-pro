@@ -1,24 +1,28 @@
-<project name="DSRmi" basedir="." default="run_server">
-
+<project name="RMIEvents" basedir="../">
 	<property name="client.src.dir" value="src/client"/>
-	<property name="policyfile.name" value="all.policy"/>
 	<property name="server.src.dir" value="src/server"/>
+	<property name="policy.file" value="${client.src.dir}/all.policy"/>
 
-	<property name="build.dir" value="${basedir}/build"/>
-	<property name="client.dir" value="${build.dir}/client"/>
-	<property name="server.dir" value="${build.dir}/server"/>
-	<property name="stubs.dir" value="${build.dir}/stubs"/>
+	<property name="classes.dir" value="${basedir}/classes"/>
+	<property name="client.dir" value="${classes.dir}/client"/>
+	<property name="server.dir" value="${classes.dir}/server"/>
+	<property name="stubs.dir" value="${classes.dir}/stubs"/>
 
-	<property name="package.name" value="dsrmipract"/>
-	<property name="server-class" value="${package.name}.Server"/>
-	<property name="client-class" value="${package.name}.Client"/>
+	<property name="package.name" value="rmievents"/>
+	<property name="server.class" value="${classes.dir}/${package.name}.Server"/>
+	<property name="client.class" value="${classes.dir}/${package.name}.Client"/>
 
 	<property name="stub-file" value="SDRemoteObject.class"/>
-	<property name="webdir" value="/var/www/html"/>
+	<property name="web.dir" value="/var/www/html"/>
 
-	<property name="remoteobject.name" value="leon"/>
-	<property name="webserver.ip" value="192.168.1.99"/>
-	<property name="serverhost.ip" value="192.168.1.99"/>
+	<!-- Todo: IMPORTANT -> Value of remote object is samuel -->
+	<property name="remote_object.name" value="samuel"/>
+	<property name="webserver.ip" value="192.168.43.55"/>
+	<property name="server_host.ip" value="192.168.43.55"/>
+
+	<!-- Todo: Change when uploading to the server -->
+	<property name="in.server" value="true"/>
+	<property name="in.client" value="true"/>
 
 	<property name="rmiregistry_path" value="/usr/bin/rmiregistry"/>
 
@@ -32,21 +36,21 @@
 		<mkdir dir="${client.dir}"/>
 	</target>
 
-	<target name="compile_server" depends="clean_server">
-		<javac srcdir="${server.src.dir}" destdir="${server.dir}">
+	<target name="compile_server" depends="clean_server" if="${in.server}">
+		<javac srcdir="${server.src.dir}" destdir="${classes.dir}">
 			<compilerarg value="-encoding"/>
 			<compilerarg value="utf8"/>
 		</javac>
 
 		<copy file="${server.dir}/${package.name}/SDRemoteObject.class"
-			  todir="${webdir}/${package.name}"/>
-
+			  todir="${web.dir}/${package.name}"/>
 	</target>
 
-	<target name="compile_client" depends="clean_client">
-		<copy file="${server.src.dir}/SDRemoteObject.java" todir="${client.src.dir}"/>
+	<target name="compile_client" depends="clean_client" if="${in.client}">
+		<copy file="${server.src.dir}/${package.name}/SDRemoteObject.java"
+			  todir="${client.src.dir}"/>
 
-		<javac srcdir="${client.src.dir}" destdir="${client.dir}">
+		<javac srcdir="${client.src.dir}" destdir="${classes.dir}">
 			<compilerarg value="-encoding"/>
 			<compilerarg value="utf8"/>
 		</javac>
@@ -59,24 +63,29 @@
 	</target>
 
 	<target name="run_server" depends="compile_server, rmiregistry">
-		<java classpath="${server.dir}" classname="${package.name}.Server"
+		<java classpath="${classes.dir}" classname="${package.name}.Server"
 			  fork="true" failonerror="true">
-			<jvmarg value="-Djava.rmi.server.hostname=${serverhost.ip}"/>
+			<jvmarg value="-Djava.rmi.server.hostname=${server_host.ip}"/>
 			<jvmarg value="-Djava.rmi.server.codebase=http://${webserver.ip}/"/>
-			<arg value="${remoteobject.name}"/>
+
+			<arg value="${remote_object.name}"/>
 		</java>
 	</target>
 
 	<target name="run_client" depends="compile_client">
-		<copy file="${client.src.dir}/${policyfile.name}" todir="${client.dir}"/>
-		<java dir="${client.dir}" classpath="${client.dir}"
-			  classname="${package.name}.Client" fork="true"
-			  failonerror="true">
+		<copy file="${policy.file}" todir="${client.dir}"/>
 
-			<jvmarg value="-Djava.security.policy=${client.dir}/${policyfile.name}"/>
+		<java classpath="${classes.dir}" classname="${package.name}.Client"
+			  fork="true" failonerror="true">
 
-			<arg value="${serverhost.ip}"/>
-			<arg value="${remoteobject.name}"/>
+			<jvmarg value="-Djava.security.policy=${policy.file}"/>
+
+			<arg value="${server_host.ip}"/>
+			<arg value="${remote_object.name}"/>
 		</java>
+	</target>
+
+	<target name="compile" depends="compile_client, compile_server">
+		<echo>Compiled successfully</echo>
 	</target>
 </project>

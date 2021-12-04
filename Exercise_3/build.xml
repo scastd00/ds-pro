@@ -4,7 +4,7 @@
 	<property name="server.src.dir" value="src/server"/>
 	<property name="policy.file.name" value="all.policy"/>
 
-	<property name="build.dir" value="${basedir}/build"/>
+	<property name="build.dir" value="build"/>
 	<property name="client.dir" value="${build.dir}/client"/>
 	<property name="server.dir" value="${build.dir}/server"/>
 	<property name="stubs.dir" value="${build.dir}/stubs"/>
@@ -17,14 +17,15 @@
 	<property name="web.dir" value="/var/www/html"/>
 
 	<property name="remote.object.name" value="samuel"/>
-	<property name="remote.object.port" value="65497"/> <!-- 0 para hacerlo en local -->
+	<property name="remote.object.port" value="65497"/>
 
-	<property name="webserver.ip" value="193.146.101.46"/>
-	<property name="server.host.ip" value="193.146.101.46"/>
-	<!-- IP Paloalto: 193.146.101.46 - Mi puerto: 65497 -->
+	<property name="webserver.ip" value="192.168.0.16"/>
+	<property name="server.host.ip" value="192.168.0.16"/>
+
+	<!-- IP Paloalto: 193.146.101.46  -->
 
 	<property name="rmiregistry_ext.port" value="60001"/>
-	<property name="webserver.port" value="60003"/>
+
 	<property name="rmiregistry_path" value="/usr/bin/rmiregistry"/>
 
 	<target name="clean_server">
@@ -38,7 +39,9 @@
 	</target>
 
 	<target name="compile_server" depends="clean_server">
-		<javac srcdir="${server.src.dir}" destdir="${server.dir}">
+		<javac
+			srcdir="${server.src.dir}"
+			destdir="${server.dir}">
 			<compilerarg value="-encoding"/>
 			<compilerarg value="utf8"/>
 		</javac>
@@ -48,7 +51,9 @@
 	</target>
 
 	<target name="compile_client" depends="clean_client">
-		<javac srcdir="${client.src.dir}" destdir="${client.dir}">
+		<javac
+			srcdir="${client.src.dir}"
+			destdir="${client.dir}">
 			<compilerarg value="-encoding"/>
 			<compilerarg value="utf8"/>
 		</javac>
@@ -61,20 +66,17 @@
 	</target>
 
 	<target name="run_server" depends="compile_server, rmiregistry">
-		<java dir="${server.dir}" classpath="${server.dir}" classname="${package.name}.Server"
-			  fork="true"
+		<java classpath="${server.dir}" classname="${package.name}.Server" fork="true"
 			  failonerror="true">
 			<jvmarg value="-Djava.rmi.server.hostname=${server.host.ip}"/>
-			<jvmarg
-				value="-Djava.rmi.server.codebase=http://${webserver.ip}:${webserver.port}/${remote.object.name}"/>
+			<jvmarg value="-Djava.rmi.server.codebase=http://${webserver.ip}/"/>
 
 			<arg value="${remote.object.name}"/>
-			<arg value="${remote.object.port}"/>
 		</java>
 	</target>
 
 	<target name="run_client" depends="compile_client">
-		<copy file="${client.src.dir}/${policy.file.name}" todir="${client.dir}"/>
+		<copy file="src/${policy.file.name}" todir="${client.dir}"/>
 
 		<java classpath="${client.dir}" classname="${package.name}.Client"
 			  fork="true" failonerror="true">
@@ -82,7 +84,6 @@
 			<jvmarg value="-Djava.security.policy=${client.dir}/${policy.file.name}"/>
 
 			<arg value="${server.host.ip}"/>
-			<arg value="${rmiregistry_ext.port}"/>
 			<arg value="${remote.object.name}"/>
 		</java>
 	</target>

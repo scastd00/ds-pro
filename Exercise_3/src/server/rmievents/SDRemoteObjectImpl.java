@@ -11,8 +11,8 @@ public class SDRemoteObjectImpl extends UnicastRemoteObject implements SDRemoteO
 	 * This constructor along with the throws' clause is required so that
 	 * objects are appropriately created as remote objects.
 	 */
-	public SDRemoteObjectImpl(int port) throws RemoteException {
-		super(port);
+	public SDRemoteObjectImpl() throws RemoteException {
+		super(); // Todo: add port??
 	}
 
 	@Override

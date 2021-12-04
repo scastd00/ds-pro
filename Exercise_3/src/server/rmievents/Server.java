@@ -8,20 +8,13 @@ import java.util.logging.Logger;
 
 public class Server {
 	public static void main(String[] args) {
-		if (args.length != 2) {
-			System.err.println("rmievents.Server <Remote object registry name> <Remote object port>");
+		if (args.length != 1) {
+			System.err.println("rmievents.Server <Remote object registry name>");
 			System.exit(-1);
 		}
 
-		int port = Integer.parseInt(args[1]);
-
-		if (!checkPortRange(port)) {
-			System.err.println("Port must be greater than 0 and lower than 65535");
-			System.exit(-2);
-		}
-
 		try {
-			SDRemoteObjectImpl cc = new SDRemoteObjectImpl(port);
+			SDRemoteObjectImpl cc = new SDRemoteObjectImpl();
 			Naming.rebind(args[0], cc);
 
 			System.out.println("-------------------------------------------------");
@@ -32,9 +25,5 @@ public class Server {
 		} catch (RemoteException | MalformedURLException ex) {
 			Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
 		}
-	}
-
-	private static boolean checkPortRange(int port) {
-		return port > 0 && port < 65535;
 	}
 }

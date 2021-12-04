@@ -4,5 +4,4 @@
 cmake-build-debug/
 CMakeLists.txt
 **/*.iml
-**/*.odt
 

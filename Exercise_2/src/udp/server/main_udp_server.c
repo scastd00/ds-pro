@@ -58,7 +58,7 @@ char *binary_representation(time_t diff) {
  *
  * @return string with the data.
  */
-time_t make_response() {
+char *make_response() {
 	// Create the base date (01-01-1900)
 	struct tm time_send = {
 		.tm_year = 0, // Year 1900
@@ -71,16 +71,11 @@ time_t make_response() {
 
 	// Number of seconds since 'time_send' date to 01-01-1970 (UNIX epoch)
 	// This number is negative.
-	time_t time_1900 = mktime(&time_send);
+	time_t time_1900_to_epoch = mktime(&time_send);
 	time_t now = time(NULL); // Get seconds since UNIX epoch until now
 
-	printf("1900: %ld\n", time_1900);
-	printf("Now: %ld\n", now);
-
-	time_t diff = now - time_1900;
-	printf("diff: %ld\n", diff);
-
-	return diff; // devolver diff a secas
+	time_t diff = now - time_1900_to_epoch;
+	return binary_representation(diff);
 }
 
 /**
@@ -106,12 +101,10 @@ void run_date(int sock) {
 		exit(EXIT_FAILURE);
 	}
 
-//	char *response = make_response();
-	// htonl de diff
-	int time = htonl(make_response());
+	const char *response = make_response();
 
 	// Send the seconds to the client
-	bytes = sendto(sock, &time, sizeof(int), 0, (struct sockaddr *) &client, sizeof(client));
+	bytes = sendto(sock, response, strlen(response), 0, (struct sockaddr *) &client, sizeof(client));
 
 	if (bytes < 0) {
 		perror("sendto call was not successful");
@@ -119,7 +112,7 @@ void run_date(int sock) {
 		exit(EXIT_FAILURE);
 	}
 
-//	printf("Sent %zd bytes ('%s')\n", bytes, response);
+	printf("Sent the seconds to the client\n");
 }
 
 int main() {

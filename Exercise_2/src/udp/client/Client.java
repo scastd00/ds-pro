@@ -1,6 +1,9 @@
 package udp.client;
 
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -8,6 +11,7 @@ import java.net.UnknownHostException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -45,7 +49,7 @@ public class Client {
 		this.socket.send(packet);
 
 		// Create a new packet to store the byte stream that the server will send
-		packet = createDatagramPacket(new byte[Integer.SIZE], Integer.SIZE);
+		packet = createDatagramPacket(new byte[Integer.BYTES], Integer.BYTES);
 		this.socket.receive(packet); // Store the server's response into packet.buf attribute
 
 		/*
@@ -53,8 +57,11 @@ public class Client {
 		 * in a binary representation of the number. It is parsed to a long
 		 * because an exception is thrown if used an int.
 		 */
-		String binStringNum = new String(packet.getData());
-		long   secondsDate  = Long.parseLong(binStringNum, 2);
+//		String binStringNum = new String(packet.getData());
+//		long   secondsDate  = Long.parseLong(binStringNum, 2);
+		System.out.println(Arrays.toString(packet.getData()));
+		long value = new BigInteger(packet.getData()).longValueExact();
+		System.out.println(value);
 
 		// Get a new empty calendar
 		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
@@ -65,12 +72,13 @@ public class Client {
 		 * Add the seconds received from the server to the calendar to obtain the current date.
 		 * The output format is: day, dd mm yyyy hh:mm:ss TZ
 		 */
-		Instant instant = cal.toInstant().plusSeconds(secondsDate);
-		DateTimeFormatter formatter = DateTimeFormatter.RFC_1123_DATE_TIME
-			.withLocale(Locale.getDefault())
-			.withZone(ZoneId.of("GMT"));
-
-		System.out.println(formatter.format(instant));
+//		Instant instant = cal.toInstant().plusSeconds(secondsDate);
+//		DateTimeFormatter formatter = DateTimeFormatter.RFC_1123_DATE_TIME
+//			.withLocale(Locale.getDefault())
+//			.withZone(ZoneId.of("GMT"));
+//
+//		System.out.println(binStringNum);
+//		System.out.println(formatter.format(instant));
 	}
 
 	/**

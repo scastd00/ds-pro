@@ -34,8 +34,9 @@ struct sockaddr_in create_server_address() {
  * @return binary string with the representation of the seconds passed.
  */
 char *binary_representation(time_t diff) {
+	// Character string for storing the seconds in binary representation + '\0'
 	char *out = (char *) malloc((MAX_RES + 1) * sizeof(char));
-	int bit_i;
+	time_t bit_i;
 
 	// Travelling through the bits of the number from left to right.
 	for (int i = 31; i >= 0; i--) {
@@ -57,7 +58,7 @@ char *binary_representation(time_t diff) {
  *
  * @return string with the data.
  */
-char *make_response() {
+time_t make_response() {
 	// Create the base date (01-01-1900)
 	struct tm time_send = {
 		.tm_year = 0, // Year 1900
@@ -73,8 +74,13 @@ char *make_response() {
 	time_t time_1900 = mktime(&time_send);
 	time_t now = time(NULL); // Get seconds since UNIX epoch until now
 
+	printf("1900: %ld\n", time_1900);
+	printf("Now: %ld\n", now);
+
 	time_t diff = now - time_1900;
-	return binary_representation(diff);
+	printf("diff: %ld\n", diff);
+
+	return diff; // devolver diff a secas
 }
 
 /**
@@ -90,28 +96,30 @@ void run_date(int sock) {
 	char buffer[len];
 
 	// Wait until receiving a message from the client.
-	int bytes = recvfrom(sock, buffer, len, 0, (struct sockaddr *) &client, &addr_length);
-	printf("Received %d bytes: ('%s')\n", bytes, buffer);
+	ssize_t bytes = recvfrom(sock, buffer, len, 0, (struct sockaddr *) &client, &addr_length);
+	printf("Received %zd bytes: ('%s')\n", bytes, buffer);
 
-	// Check that the massage received is correct
+	// Check that the received message is correct
 	if (strcmp(buffer, REQ_MSG) != 0) {
 		perror("Invalid request\n");
 		close(sock);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
-	char *response = make_response();
+//	char *response = make_response();
+	// htonl de diff
+	int time = htonl(make_response());
 
-	// Send the seconds
-	bytes = sendto(sock, response, strlen(response) + 1, 0, (struct sockaddr *) &client, sizeof(client));
+	// Send the seconds to the client
+	bytes = sendto(sock, &time, sizeof(int), 0, (struct sockaddr *) &client, sizeof(client));
 
 	if (bytes < 0) {
 		perror("sendto call was not successful");
 		close(sock);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
-	printf("Sent %d bytes ('%s')\n", bytes, response);
+//	printf("Sent %zd bytes ('%s')\n", bytes, response);
 }
 
 int main() {
@@ -122,5 +130,5 @@ int main() {
 
 	run_date(sock);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

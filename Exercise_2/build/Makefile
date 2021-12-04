@@ -21,7 +21,6 @@ run_jrmp_server:
 	@sudo $(ANT) run_jrmp_server
 
 
-
 # TCP
 #	Client - C
 #	Server - Java
@@ -34,7 +33,6 @@ run_tcp_client:
 
 run_tcp_server:
 	@sudo $(ANT) run_tcp_server
-
 
 
 # UDP

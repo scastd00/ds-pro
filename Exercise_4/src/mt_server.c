@@ -1,5 +1,5 @@
 /**
- *************************************************************************************
+ *****************************************************************************************
  * All rights reserved (C) 2018-2019 by José María Foces Morán and
  * José María Foces Vivancos
  *
@@ -14,7 +14,10 @@
  *   - http://paloalto.unileon.es/ds/lab/serverSolution.c
  *
  * Modified by Samuel Castrillo Domínguez
- *************************************************************************************
+ *   - Commented useless printf functions to observe better the behavior of the program.
+ *   - If you want to execute the solution, DEBUG_SOLUTION macro must be defined in
+ *     dstcppract.h
+ *****************************************************************************************
 */
 
 #include "dstcppract.h"
@@ -24,7 +27,7 @@ int createConfigWelcomeSocket(int port) {
 	/*
 	 * Create a TCP (stream) socket using the Internet address family
 	 */
-	int welcomeSocket = socket(AF_INET, SOCK_STREAM, 0); //Last arg is always 0
+	int welcomeSocket = socket(AF_INET, SOCK_STREAM, 0); // Last arg is always 0
 
 	/*
 	 * Create a socket address for the stream socket
@@ -34,10 +37,10 @@ int createConfigWelcomeSocket(int port) {
 	// Clear the contents of wsAddress
 	memset(&wsAddress, 0, sizeof(wsAddress));
 
-	//Set the socket address family equal to Internet address
+	// Set the socket address family equal to Internet address
 	wsAddress.sin_family = AF_INET;
 
-	//Set the TCP port to be used for this socket
+	// Set the TCP port to be used for this socket
 	wsAddress.sin_port = htons(port);
 
 	/*************************************************************************************
@@ -68,11 +71,6 @@ int createConfigWelcomeSocket(int port) {
 	return welcomeSocket;
 }
 
-void printClient(struct sockaddr_in clientAddress) {
-	printf("Client IP %s\tClient port %hu\n", inet_ntoa(clientAddress.sin_addr), ntohs(clientAddress.sin_port));
-	fflush(stdout);
-}
-
 _Noreturn void server(int port) {
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
 		fprintf(stderr, "Unable to have SIGPIPE ignored. Exiting.\n");
@@ -85,23 +83,23 @@ _Noreturn void server(int port) {
 	struct sockaddr_in clientAddress;
 	unsigned int addressLength;
 
-	//The delegate socket
+	// The delegate socket
 	int delegateSocket;
 
-	//Reserve static memory for storing the response
+	// Reserve static memory for storing the response
 	static char response[MAX_RESP];
 
 	/**
 	 *************************************************************************************
-	 * This is the server's loop (A recursive server):
-	 * 1. Listen for connection requests received on the welcome socket
+	 * This is the server's loop:
+	 * 1. Listen for connection requests received on the welcome socket.
 	 * 2. When a client connects with us, the accept() function returns
-	 *    a delegate socket
-	 * 3. call getRequest() (If request is REQ_SHUTDOWN, exit the worker thread,
-	 *    -not the server thread)
+	 *    a delegate socket.
+	 * 3. Call getRequest() (If request is REQ_SHUTDOWN, exit the worker thread,
+	 *    not the server thread).
 	 * 4. Create a new thread for enacting the client server protocol by having the thread
-	 *    call and execute clientServerProtocol() function
-	 * 5. Repeat loop
+	 *    call and execute clientServerProtocol() function.
+	 * 5. Repeat loop.
 	 *************************************************************************************/
 
 	while (TRUE) {
@@ -124,22 +122,23 @@ _Noreturn void server(int port) {
 
 		pthread_t threadForClient;
 
-		if (DEBUG_SOLUTION) {
-			// Para que cada thread tenga su propia delegate socket
-			int *del_sock = (int *) malloc(sizeof(int));
-			*del_sock = delegateSocket;
+#ifdef DEBUG_SOLUTION
+		// Allocate memory on the heap for the delegate socket
+		int *del_sock = (int *) malloc(sizeof(int));
+		*del_sock = delegateSocket;
+		// Each thread has its own delegate socket
 
-			if (pthread_create(&threadForClient, (pthread_attr_t *) NULL, clientServerProtocol, del_sock) != 0)
-				perror("Thread creation error\n");
-			else
-				printf("New worker thread created (Delegate socket %d)\n", delegateSocket);
+		if (pthread_create(&threadForClient, (pthread_attr_t *) NULL, clientServerProtocol, del_sock) != 0)
+			perror("Thread creation error\n");
+		else
+			printf("New worker thread created (Delegate socket %d)\n", delegateSocket);
+#else
+		if (pthread_create(&threadForClient, (pthread_attr_t *) NULL, clientServerProtocol, &delegateSocket) != 0)
+			perror("Thread creation error\n");
+		else
+			printf("New worker thread created (Delegate socket %d)\n", delegateSocket);
+#endif
 
-		} else {
-			if (pthread_create(&threadForClient, (pthread_attr_t *) NULL, clientServerProtocol, &delegateSocket) != 0)
-				perror("Thread creation error\n");
-			else
-				printf("New worker thread created (Delegate socket %d)\n", delegateSocket);
-		}
 	}
 
 	close(welcomeSocket);

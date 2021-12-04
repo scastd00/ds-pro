@@ -32,7 +32,7 @@ ssize_t receiveResponse(int socket, char *message, int n_bytes) {
 /**
  * Create a new stream (TCP) socket.
  *
- * @return
+ * @return file descriptor for the new socket.
  */
 int createSocket() {
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -83,7 +83,7 @@ void print_time(const long seconds_to_add, struct tm base_date) {
 
 	// Format time, "day, dd mm yyyy hh:mm:ss TZ"
 	struct tm ts = *localtime(&raw_time);
-	strftime(buff, sizeof(buff), "%a, %d %b %Y %H:%M:%S %Z", &ts);
+	strftime(buff, sizeof(buff), "Local time: %a, %d %b %Y %H:%M:%S %Z", &ts);
 	printf("%s\n", buff);
 	fflush(stdout);
 }

@@ -8,6 +8,9 @@
  *
  *
  * Modified by Samuel Castrillo Domínguez
+ *   - Commented useless printf functions to observe better the behavior of the program.
+ *   - If you want to execute the solution, DEBUG_SOLUTION macro must be defined in
+ *     dstcppract.h
  ********************************************************************************
 */
 
@@ -187,7 +190,6 @@ char *computeResponse(char *request, int delegateSocket) {
 
 void *clientServerProtocol(void *ds) {
 	int delegateSocket = *(int *) ds;
-	free(ds); // Not used anymore
 
 	char *request, *response;
 

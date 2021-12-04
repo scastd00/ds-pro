@@ -17,7 +17,7 @@ public class Client {
 	/**
 	 * Message sent to the server to get the date.
 	 */
-	private static final byte[] REQ_MSG = "GET_DATE\0".getBytes();
+	private static final byte[] REQ_MSG_BYTES = "GET_DATE".getBytes();
 
 	/**
 	 * UDP socket used for the connection
@@ -39,7 +39,7 @@ public class Client {
 	 * @throws IOException if an error occurs.
 	 */
 	public void work() throws IOException {
-		DatagramPacket packet = createDatagramPacket(REQ_MSG, REQ_MSG.length);
+		DatagramPacket packet = createDatagramPacket(REQ_MSG_BYTES, REQ_MSG_BYTES.length);
 
 		// Send the packet to the server
 		this.socket.send(packet);

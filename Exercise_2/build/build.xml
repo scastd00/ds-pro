@@ -1,18 +1,3 @@
-<!--
-  * All rights reserved (C) 2014-2021 by José María Foces Morán and José María
-  * Foces Vivancos from textbook "Conceptual Computer Networks"
-
-  build.xml
-
-  Build file for automating C/S computing based on Java RMI
-  See targets and their dependencies:
-  · Compile Server
-  · Compile Client
-  · Run rmiregistry
-  · Run Server
-  · Run Client
--->
-
 <project name="Exercise_2_RFC_868" basedir="../" default="todo">
 
 	<property name="projectName" value="Exercise_2_RFC_868"/>
@@ -37,8 +22,6 @@
 	<property name="jrmp_server.dir" value="bin/jrmp/server"/>
 	<property name="udp_server.dir" value="bin/udp/server"/>
 	<property name="tcp_server.dir" value="bin/tcp/server"/>
-
-	<property name="rmiregistry_path" value="/usr/bin/rmiregistry"/>
 
 	<target name="cleanProject">
 		<delete includeemptydirs="true">
@@ -77,17 +60,11 @@
 		<mkdir dir="${tcp_server.dir}"/>
 	</target>
 
-	<target name="build_jrmp" depends="cleanJRMP">
-		<echo>Hello jrmp!</echo>
-	</target>
+	<target name="build_jrmp" depends="cleanJRMP"/>
 
-	<target name="run_jrmp_client">
-		<echo>Hello run_jrmp_client!</echo>
-	</target>
+	<target name="run_jrmp_client"/>
 
-	<target name="run_jrmp_server">
-		<echo>Hello run_jrmp_server!</echo>
-	</target>
+	<target name="run_jrmp_server"/>
 
 	<target name="build_tcp_server" depends="cleanTCP">
 		<javac destdir="${tcp_server.dir}" verbose="false" debug="true" includeantruntime="false">
@@ -119,8 +96,5 @@
 		</java>
 	</target>
 
-	<target name="todo" depends="make_folder_structure">
-		<echo>Hello todo!</echo>
-	</target>
-
+	<target name="todo" depends="make_folder_structure"/>
 </project>

@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <math.h>
 
+// __typeof__ is more secure
 #define min(a, b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -31,8 +32,7 @@ int data_length = 12;
 struct sockaddr targetHost; // Socket address for the target host
 int rawSocket;
 
-int n_sent = 0;
-int pid;
+int pid; // Process id
 
 #define MAX_IP_HEADER_LENGTH 60
 #define MAX_ICMP_PAYLOAD_LENGTH 76
@@ -41,8 +41,10 @@ int pid;
 
 #define SEC_IN_HOUR (24 * 3600)
 #define MS_IN_SEC 1000
-#define NTP_IP "185.132.136.116" // NTP server -> paloalto.unileon.es
-#define LOCAL_TIMEOUT 15
+#define NTP_IP "193.146.101.46" // NTP server -> paloalto.unileon.es
+#define DEFAULT_TIMEOUT 15 // After 15 retries, the rtt must be recalculated
+
+#define LOCAL_TIMEOUT
 
 struct timeval originate_time_val;
 struct timeval receive_time_val;
@@ -52,15 +54,22 @@ time_t TSRecv;
 time_t TSTrans;
 time_t TSDiff;
 
-/* long int */
 double std_deviation;
-time_t min_rtt = INT_MAX;
-u_int refresh_counter = LOCAL_TIMEOUT;
+time_t min_rtt = INT_MAX; // Force the update the first time.
+u_int refresh_counter = DEFAULT_TIMEOUT;
 float mean_delta;
-float delta_counter = 0;
+float n_sent = 0;
+time_t *deltas;
 
 bool end = 0;
 
+/**
+ * Creates a new socket for communicating with the server
+ *
+ * @param target_ip_ddn IP address of the server in DDN notation.
+ *
+ * @return file descriptor of the new socket.
+ */
 int createServerSocket(const char *target_ip_ddn) {
 	struct sockaddr_in *inetTargetHost; // inet socket address for target host
 
@@ -70,9 +79,17 @@ int createServerSocket(const char *target_ip_ddn) {
 	inetTargetHost->sin_family = AF_INET;
 	inet_aton(target_ip_ddn, &(inetTargetHost->sin_addr));
 
+	// Raw socket -> IP
 	return socket(AF_INET, SOCK_RAW, getprotobyname("icmp")->p_proto);
 }
 
+/**
+ * Allocates memory for a new packet.
+ *
+ * @param packet_length The length of the packet.
+ *
+ * @return Pointer to the new packet.
+ */
 u_char *createPacket(int *packet_length) {
 	*packet_length = data_length + MAX_IP_HEADER_LENGTH + MAX_ICMP_PAYLOAD_LENGTH;
 
@@ -108,6 +125,11 @@ unsigned short internetChecksum(u_short *addr, int len) {
 	return answer;
 }
 
+/**
+ * Prints the local time with a text.
+ *
+ * @param text Text to print before the time.
+ */
 void print_time(const char *text) {
 	time_t raw_time = time(NULL);
 	const struct tm *time_info = localtime(&raw_time);
@@ -115,6 +137,13 @@ void print_time(const char *text) {
 	fflush(stdout);
 }
 
+/**
+ * Executes adjtime for synchronization of the clock.
+ *
+ * @param delta The delta to be applied to the clock.
+ * 				If delta is positive, the clock accelerates.
+ * 				If delta is negative, the clock decelerates.
+ */
 void adjust(const struct timeval delta) {
 	print_time("Current time before adjtime");
 	adjtime(&delta, (struct timeval *) 0);
@@ -129,13 +158,31 @@ void adjust(const struct timeval delta) {
  * Formula from: https://math.stackexchange.com/questions/106700/
  */
 void update_mean_delta(time_t delta) {
-	mean_delta = mean_delta + ((delta - mean_delta) / delta_counter);
+	mean_delta = mean_delta + (((float) delta - mean_delta) / n_sent);
+
+	deltas[(long) n_sent - 1] = delta; // Store the new delta obtained.
 }
 
-void update_std_deviation(time_t delta) {
-	std_deviation = sqrt((1 / delta_counter) * (pow(delta - mean_delta, 2)));
+/**
+ * Standard deviation of the deltas obtained in the execution.
+ */
+void update_std_deviation() {
+	float SD = 0.0f;
+
+	for (long i = 0; i < (long) n_sent; i++) {
+		SD += powf((float) deltas[i] - mean_delta, 2);
+	}
+
+	std_deviation = sqrtf(SD / 10);
 }
 
+/**
+ * Makes all the calculations of the program and prints the results.
+ *
+ * @param buff packet to process.
+ *
+ * @return 0 if the packet is an ICMP reply, 1 otherwise.
+ */
 int processPacket(char *buff) {
 	int headerLength;
 	const struct icmp *icmp;
@@ -182,37 +229,49 @@ int processPacket(char *buff) {
 //		TSDiff = TSRecv - TSOrig; // ms
 
 		printf("\t-> Delta = %ld\n", diff);
-		delta_counter++;
-		update_mean_delta(diff);
-		update_std_deviation(diff);
-		printf("\t-> Mean delta = %.3f\n", mean_delta);
-		printf("\t-> Std deviation = %.3f\n\n", std_deviation);
+		n_sent++;
 
-		// Check / vs. %, see above within this function:
+		update_mean_delta(diff);
+		update_std_deviation();
+
+		printf("\t-> Mean delta = %.3f\n", mean_delta);
+		printf("\t-> Std deviation = %.3f\n", std_deviation);
+		printf("\t-> Current minimum rtt = %ld\n\n", min_rtt);
+
 		delta.tv_sec = diff / MS_IN_SEC;
 		delta.tv_usec = (diff % MS_IN_SEC) * MS_IN_SEC;
 
 		time_t rtt_aux_min = min(min_rtt, rtt);
 
-		refresh_counter--; // If the time is not adjusted, after 10 retries, adjust the clock.
+#ifdef LOCAL_TIMEOUT
+
+		refresh_counter--; // If the time is not adjusted, after DEFAULT_TIMEOUT retries, adjust the clock.
 		if (refresh_counter == 0) {
 			printf("LOCAL TIMEOUT\n");
-			printf("Reset counter: %u\n", refresh_counter);
 
-			adjust(delta); // Adjust time if rtt is a new minimum.
-			refresh_counter = LOCAL_TIMEOUT;
-			min_rtt = INT_MAX; // Make the program to update the rtt the next iteration
-		} else if (rtt_aux_min < min_rtt) {
+			adjust(delta); // Adjust time if rtt because of the timeout.
+			refresh_counter = DEFAULT_TIMEOUT; // Reset counter
+			min_rtt = INT_MAX; // Make the program update the rtt in the next iteration
+		} else
+
+#endif
+
+		if (rtt_aux_min < min_rtt) {
 			min_rtt = rtt_aux_min;
 
 			printf("Adjusting time (new min rtt = %ld)\n", min_rtt);
-			printf("Reset counter: %u\n", refresh_counter);
+
+#ifdef LOCAL_TIMEOUT
+			refresh_counter = DEFAULT_TIMEOUT;
+#endif
 
 			adjust(delta); // Adjust time if rtt is a new minimum.
-			refresh_counter = LOCAL_TIMEOUT;
 		}
 
+#ifdef LOCAL_TIMEOUT
 		printf("\nAdjusting time in %u retries\n", refresh_counter);
+#endif
+
 		return 0; // Timestamp reply
 	} else {
 		return -1; // Not timestamp reply
@@ -248,6 +307,12 @@ void sendRequest() {
 	sendto(rawSocket, (char *) requestPacket, len, 0, &targetHost, sizeof(struct sockaddr));
 }
 
+/**
+ * Receive the packet and store it in the recv_packet parameter.
+ *
+ * @param packet_length length of the packet.
+ * @param recv_packet packet data.
+ */
 void receiveResponse(int packet_length, unsigned char *recv_packet) {
 	struct sockaddr_in from;
 	int n_bytes;
@@ -267,13 +332,19 @@ void receiveResponse(int packet_length, unsigned char *recv_packet) {
 	}
 
 	if (processPacket((char *) recv_packet) == 0) {
-		free(recv_packet);
 		return;
 	}
 }
 
+/**
+ * Handler of the SIGINT signal. After it is received by the process,
+ * the socket is closed.
+ *
+ * @param sig Signal received.
+ */
 void handler(int sig) {
 	end = 1;
+	close(rawSocket);
 	printf("Exiting...\n");
 	exit(EXIT_SUCCESS);
 }
@@ -281,14 +352,19 @@ void handler(int sig) {
 int main() {
 	pid = getpid();
 	rawSocket = createServerSocket(NTP_IP);
+	deltas = (time_t *) malloc(100 * sizeof(time_t));
+	memset(deltas, 0, 100 * sizeof(time_t));
+
 	unsigned char *packet = NULL;
 	int packetLength;
 
-	struct sigaction sa = {
+	// Used for handling signals.
+	struct sigaction sig_a = {
 		.sa_handler = handler
 	};
 
-	if (sigaction(SIGINT, &sa, NULL) < 0) {
+	// Build the signal handler to be fired when SIGINT signal is received.
+	if (sigaction(SIGINT, &sig_a, NULL) < 0) {
 		printf("Error when creating the handler\n");
 		exit(EXIT_FAILURE);
 	}
@@ -296,9 +372,10 @@ int main() {
 	while (!end) {
 		packet = createPacket(&packetLength);
 		sendRequest();
+		printf("--------------------------------------------------------\n");
 		receiveResponse(packetLength, packet);
-		usleep(1200 * MS_IN_SEC);
-
+		printf("--------------------------------------------------------\n");
+		sleep(1);
 	}
 
 	return EXIT_SUCCESS;

@@ -6,4 +6,4 @@ run: compile
 	@sudo $(BIN_FILE)
 
 compile:
-	@$(CC) $(SRC_FILE) -o $(BIN_FILE)
+	@$(CC) $(SRC_FILE) -o $(BIN_FILE) -lm

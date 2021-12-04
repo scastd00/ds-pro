@@ -1,15 +1,3 @@
-/*
- * Parts of this source code were taken from the
- * W. Richard Stevens' book on Unix Network Programming
- * (Prentice-Hall 1998)
- *
- * Refactorization, additional comments and adaptation
- * for the purposes of the CN Lab by José María Foces Moran 2014
- *
- * Technical details about the structure of the ICMP datagram and IP packets
- * may be obtained from RFC
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,13 +15,17 @@
 #include <unistd.h>
 
 #include <errno.h>
-#include <signal.h>
 #include <stdbool.h>
+#include <time.h>
+#include <limits.h>
+#include <signal.h>
+#include <math.h>
 
-/*
- * # Bytes of data, following ICMP header (Stevens' UNIX Net Programming book)
- * Data that goes with ICMP echo request
- */
+#define min(a, b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
 int data_length = 12;
 
 struct sockaddr targetHost; // Socket address for the target host
@@ -49,7 +41,8 @@ int pid;
 
 #define SEC_IN_HOUR (24 * 3600)
 #define MS_IN_SEC 1000
-#define NTP_IP "193.146.101.46" // NTP server -> paloalto.unileon.es
+#define NTP_IP "185.132.136.116" // NTP server -> paloalto.unileon.es
+#define LOCAL_TIMEOUT 15
 
 struct timeval originate_time_val;
 struct timeval receive_time_val;
@@ -59,10 +52,17 @@ time_t TSRecv;
 time_t TSTrans;
 time_t TSDiff;
 
+/* long int */
+double std_deviation;
+time_t min_rtt = INT_MAX;
+u_int refresh_counter = LOCAL_TIMEOUT;
+float mean_delta;
+float delta_counter = 0;
+
 bool end = 0;
 
 int createServerSocket(const char *target_ip_ddn) {
-	struct sockaddr_in *inetTargetHost; //inet socket address for target host
+	struct sockaddr_in *inetTargetHost; // inet socket address for target host
 
 	bzero((char *) &targetHost, sizeof(struct sockaddr));
 
@@ -70,17 +70,13 @@ int createServerSocket(const char *target_ip_ddn) {
 	inetTargetHost->sin_family = AF_INET;
 	inet_aton(target_ip_ddn, &(inetTargetHost->sin_addr));
 
-	const struct protoent *protocol = getprotobyname("icmp");
-
-	return socket(AF_INET, SOCK_RAW, protocol->p_proto);
+	return socket(AF_INET, SOCK_RAW, getprotobyname("icmp")->p_proto);
 }
 
 u_char *createPacket(int *packet_length) {
 	*packet_length = data_length + MAX_IP_HEADER_LENGTH + MAX_ICMP_PAYLOAD_LENGTH;
 
-	unsigned char *packet = (unsigned char *) malloc((unsigned int) *packet_length);
-
-	return packet;
+	return (u_char *) malloc((u_int) *packet_length);
 }
 
 /*
@@ -93,8 +89,8 @@ u_char *createPacket(int *packet_length) {
 unsigned short internetChecksum(u_short *addr, int len) {
 	int n_left = len;
 	int sum = 0;
-	unsigned short *w = addr;
-	unsigned short answer = 0;
+	u_short *w = addr;
+	u_short answer = 0;
 
 	while (n_left > 1) {
 		sum += *w++;
@@ -102,7 +98,7 @@ unsigned short internetChecksum(u_short *addr, int len) {
 	}
 
 	if (n_left == 1) {
-		*(unsigned char *) (&answer) = *(unsigned char *) w;
+		*(u_char *) (&answer) = *(u_char *) w;
 		sum += answer;
 	}
 
@@ -110,6 +106,34 @@ unsigned short internetChecksum(u_short *addr, int len) {
 	sum += (sum >> 16);
 	answer = ~sum;
 	return answer;
+}
+
+void print_time(const char *text) {
+	time_t raw_time = time(NULL);
+	const struct tm *time_info = localtime(&raw_time);
+	printf("%s %s", text, asctime(time_info));
+	fflush(stdout);
+}
+
+void adjust(const struct timeval delta) {
+	print_time("Current time before adjtime");
+	adjtime(&delta, (struct timeval *) 0);
+	print_time("Current time after adjtime");
+}
+
+/**
+ * Cumulative mean of all the deltas obtained.
+ *
+ * @param delta The new delta for calculating the mean.
+ *
+ * Formula from: https://math.stackexchange.com/questions/106700/
+ */
+void update_mean_delta(time_t delta) {
+	mean_delta = mean_delta + ((delta - mean_delta) / delta_counter);
+}
+
+void update_std_deviation(time_t delta) {
+	std_deviation = sqrt((1 / delta_counter) * (pow(delta - mean_delta, 2)));
 }
 
 int processPacket(char *buff) {
@@ -121,7 +145,9 @@ int processPacket(char *buff) {
 	// Record real time for accurate Rtt measurement:
 	gettimeofday(&receive_time_val, NULL);
 
-	time_t timeRecReply = (receive_time_val.tv_sec % SEC_IN_HOUR) * MS_IN_SEC + (receive_time_val.tv_usec / MS_IN_SEC);
+	time_t timeRecReply =
+		(receive_time_val.tv_sec % SEC_IN_HOUR) * MS_IN_SEC +
+		(receive_time_val.tv_usec / MS_IN_SEC);
 
 	// Compute IP header length
 	ip = (struct ip *) buff;
@@ -130,9 +156,8 @@ int processPacket(char *buff) {
 	icmp = (struct icmp *) (buff + headerLength);
 
 	/*
-	 * Discard all ICMP packets which ICMP type is not
-	 * RFC 792 type value 14 for timestamp reply message represented by
-	 * ICMP_TSTAMPREPLY constant
+	 * Discard all ICMP packets which ICMP type is not type value 14 for timestamp
+	 * reply message represented by ICMP_TSTAMPREPLY constant
 	 */
 	if (icmp->icmp_type == ICMP_TSTAMPREPLY) {
 
@@ -154,26 +179,40 @@ int processPacket(char *buff) {
 		time_t diff = (TSTrans + backDelay) - timeRecReply;
 
 		// Difference between Receive timestamp and originate timestamp:
-		TSDiff = TSRecv - TSOrig; // ms
+//		TSDiff = TSRecv - TSOrig; // ms
 
-		printf("Originate = %u, Reply Received = %ld\n", ntohl(icmp->icmp_otime), timeRecReply);
-		printf("Rough rtt = %ld\n", rtt);
-
-		printf("Receive = %d, Transmit = %d\n", ntohl(icmp->icmp_rtime), ntohl(icmp->icmp_ttime));
-		printf("IRQ time = %ld\n", irqTime);
-
-		printf("\t· backDelay = %ld\n\n", backDelay);
-		printf("\t· delta = %ld\n\n", diff);
+		printf("\t-> Delta = %ld\n", diff);
+		delta_counter++;
+		update_mean_delta(diff);
+		update_std_deviation(diff);
+		printf("\t-> Mean delta = %.3f\n", mean_delta);
+		printf("\t-> Std deviation = %.3f\n\n", std_deviation);
 
 		// Check / vs. %, see above within this function:
 		delta.tv_sec = diff / MS_IN_SEC;
 		delta.tv_usec = (diff % MS_IN_SEC) * MS_IN_SEC;
 
-		printf("Correction = %ld sec, %ld us\n", delta.tv_sec, delta.tv_usec);
-		fflush(stdout);
+		time_t rtt_aux_min = min(min_rtt, rtt);
 
-		adjtime(&delta, (struct timeval *) 0);
+		refresh_counter--; // If the time is not adjusted, after 10 retries, adjust the clock.
+		if (refresh_counter == 0) {
+			printf("LOCAL TIMEOUT\n");
+			printf("Reset counter: %u\n", refresh_counter);
 
+			adjust(delta); // Adjust time if rtt is a new minimum.
+			refresh_counter = LOCAL_TIMEOUT;
+			min_rtt = INT_MAX; // Make the program to update the rtt the next iteration
+		} else if (rtt_aux_min < min_rtt) {
+			min_rtt = rtt_aux_min;
+
+			printf("Adjusting time (new min rtt = %ld)\n", min_rtt);
+			printf("Reset counter: %u\n", refresh_counter);
+
+			adjust(delta); // Adjust time if rtt is a new minimum.
+			refresh_counter = LOCAL_TIMEOUT;
+		}
+
+		printf("\nAdjusting time in %u retries\n", refresh_counter);
 		return 0; // Timestamp reply
 	} else {
 		return -1; // Not timestamp reply
@@ -186,7 +225,8 @@ void sendRequest() {
 	unsigned char requestPacket[MAX_IP_PACKET_SIZE];
 
 	icmp = (struct icmp *) requestPacket;
-	bzero((void *) icmp, MAX_IP_PACKET_SIZE);
+	bzero(icmp, MAX_IP_PACKET_SIZE);
+
 	icmp->icmp_type = ICMP_TSTAMP;
 	icmp->icmp_code = 0;
 	icmp->icmp_seq = MAGIC_SEQ_NUMBER;
@@ -214,10 +254,7 @@ void receiveResponse(int packet_length, unsigned char *recv_packet) {
 	int from_len;
 
 	from_len = sizeof(from);
-	printf("Antes recv\n");
-	n_bytes = recvfrom(rawSocket, (char *) recv_packet, packet_length,
-	                   0, (struct sockaddr *) &from, &from_len);
-	printf("Después recv\n");
+	n_bytes = recvfrom(rawSocket, (char *) recv_packet, packet_length, 0, (struct sockaddr *) &from, &from_len);
 
 	if (n_bytes < 0) {
 		printf("Bytes received < 0");
@@ -229,8 +266,16 @@ void receiveResponse(int packet_length, unsigned char *recv_packet) {
 			perror("recvfrom error");
 	}
 
-	if (processPacket((char *) recv_packet) == 0)
+	if (processPacket((char *) recv_packet) == 0) {
+		free(recv_packet);
 		return;
+	}
+}
+
+void handler(int sig) {
+	end = 1;
+	printf("Exiting...\n");
+	exit(EXIT_SUCCESS);
 }
 
 int main() {
@@ -239,14 +284,22 @@ int main() {
 	unsigned char *packet = NULL;
 	int packetLength;
 
+	struct sigaction sa = {
+		.sa_handler = handler
+	};
+
+	if (sigaction(SIGINT, &sa, NULL) < 0) {
+		printf("Error when creating the handler\n");
+		exit(EXIT_FAILURE);
+	}
+
 	while (!end) {
 		packet = createPacket(&packetLength);
 		sendRequest();
 		receiveResponse(packetLength, packet);
+		usleep(1200 * MS_IN_SEC);
 
-		sleep(1);
 	}
 
-	free(packet);
-	return 0;
+	return EXIT_SUCCESS;
 }
